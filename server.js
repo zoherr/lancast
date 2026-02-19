@@ -3,6 +3,10 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import chalk from 'chalk';
+import boxen from 'boxen';
+import figlet from 'figlet';
+import os from 'os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -81,7 +85,49 @@ io.on('connection', (socket) => {
     });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3150;
+
+function getLocalIP() {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            if (iface.family === 'IPv4' && !iface.internal) {
+                return iface.address;
+            }
+        }
+    }
+}
+
+
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running. Access via http://localhost:${PORT} or http://<YOUR_LAN_IP>:${PORT}`);
+
+    console.clear();
+
+    const title = figlet.textSync('LARACAST', {
+        font: 'Slant',
+        horizontalLayout: 'fitted',
+        verticalLayout: 'default'
+    });
+
+    console.log(chalk.cyan(title));
+
+    const lanIP = getLocalIP();
+
+    const message = `
+🚀 Server Running Successfully
+
+🌐 Local:   http://localhost:${PORT}
+📡 Network: http://${lanIP}:${PORT}
+
+Use port 3150
+`;
+
+    console.log(
+        boxen(chalk.green(message), {
+            padding: 1,
+            margin: 1,
+            borderStyle: 'round',
+            borderColor: 'cyan'
+        })
+    );
 });
