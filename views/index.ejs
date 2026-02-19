@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LANCast</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>LANCast P2P</h1>
+        <span id="status" class="status-badge">Connecting to signaling server...</span>
+
+        <div id="network-zone">
+            <h3>Available Devices</h3>
+            <div id="users-list"></div>
+        </div>
+
+        <div id="transfer-zone" style="display: none;">
+            <h3>Transfer Files</h3>
+            <input type="file" id="file-input" />
+            <div id="progress-container" class="progress-wrapper">
+                <progress id="file-progress" value="0" max="100"></progress>
+                <span id="progress-text" class="progress-text">0%</span>
+            </div>
+            <button id="disconnect-btn" class="btn btn-primary"
+                style="background: var(--danger); margin-top: 15px;">Disconnect</button>
+        </div>
+
+        <h3>Received Files</h3>
+        <ul id="received-files"></ul>
+    </div>
+
+    <div id="request-modal" class="modal-overlay">
+        <div class="modal">
+            <p><strong id="requester-id"></strong> wants to connect and share files.</p>
+            <div class="modal-actions">
+                <button id="accept-btn" class="btn btn-accept">Accept</button>
+                <button id="reject-btn" class="btn btn-reject">Reject</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/main.js"></script>
+</body>
+
+</html>
