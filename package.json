@@ -1,11 +1,39 @@
 {
-  "name": "lan-share",
+  "name": "lancast",
   "version": "1.0.0",
+  "description": "LanCast is a LAN-based peer-to-peer file sharing CLI tool. Instantly share files between devices on the same WiFi network with zero configuration.",
   "type": "module",
   "main": "server.js",
+  "bin": {
+    "lancast": "./server.js"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "lan",
+    "file-sharing",
+    "peer-to-peer",
+    "p2p",
+    "webrtc",
+    "socket.io",
+    "local-network",
+    "wifi-file-transfer",
+    "cli-tool",
+    "xender-alternative",
+    "shareit-alternative",
+    "nodejs"
+  ],
+  "author": "Zoher Rangwala",
+  "license": "MIT",
+  "homepage": "https://lancast.zoherdev.xyz",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zoherr/lancast.git"
+  },
+  "bugs": {
+    "url": "https://github.com/zoherr/lancast/issues"
   },
   "dependencies": {
     "boxen": "^8.0.1",
@@ -17,5 +45,8 @@
   },
   "devDependencies": {
     "nodemon": "^3.0.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

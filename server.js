@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
@@ -7,6 +8,12 @@ import chalk from 'chalk';
 import boxen from 'boxen';
 import figlet from 'figlet';
 import os from 'os';
+
+const args = process.argv.slice(2);
+if (args[0] !== 'start') {
+    console.log(chalk.red('\n❌ Invalid command. Please run:\n👉 npx laracast start\n'));
+    process.exit(1);
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -55,12 +62,6 @@ io.on('connection', (socket) => {
         });
     });
 
-
-    socket.on('peer-disconnected', () => {
-        handleDisconnection(false);
-        updateStatus('Peer disconnected.', true);
-        setTimeout(() => updateStatus(`My ID: ${socket.id.substring(0, 5)}`), 3000);
-    });
     socket.on('peer-disconnected', (data) => {
         socket.to(data.to).emit('peer-disconnected');
     });
@@ -96,11 +97,10 @@ function getLocalIP() {
             }
         }
     }
+    return '127.0.0.1';
 }
 
-
 server.listen(PORT, '0.0.0.0', () => {
-
     console.clear();
 
     const title = figlet.textSync('LARACAST', {
@@ -119,7 +119,7 @@ server.listen(PORT, '0.0.0.0', () => {
 🌐 Local:   http://localhost:${PORT}
 📡 Network: http://${lanIP}:${PORT}
 
-Use port 3150
+Use port ${PORT}
 `;
 
     console.log(
