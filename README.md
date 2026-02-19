@@ -1,13 +1,3 @@
-Perfect 👍 here is your **clean, premium README** version —
-✨ No GIF
-✨ No images
-✨ Clean badges
-✨ Professional layout
-
-You can copy-paste this directly.
-
----
-
 # 🚀 LanCast
 
 <p align="center">
