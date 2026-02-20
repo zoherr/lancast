@@ -11,7 +11,7 @@ import os from 'os';
 
 const args = process.argv.slice(2);
 if (args[0] !== 'start') {
-    console.log(chalk.red('\n❌ Invalid command. Please run:\n👉 npx laracast start\n'));
+    console.log(chalk.red('\n❌ Invalid command. Please run:\n👉 npx lancast start\n'));
     process.exit(1);
 }
 
@@ -103,7 +103,7 @@ function getLocalIP() {
 server.listen(PORT, '0.0.0.0', () => {
     console.clear();
 
-    const title = figlet.textSync('LARACAST', {
+    const title = figlet.textSync('LANCAST', {
         font: 'Slant',
         horizontalLayout: 'fitted',
         verticalLayout: 'default'
