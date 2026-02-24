@@ -5,46 +5,187 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LANCast</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,600;0,800;1,300&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="/style.css">
 </head>
 
 <body>
+    <div class="bg-dots"></div>
+
     <div class="container">
-        <h1>LANCast P2P</h1>
-        <span id="status" class="status-badge">Connecting to signaling server...</span>
-
-        <div id="network-zone">
-            <h3>Available Devices</h3>
-            <div id="users-list"></div>
-        </div>
-
-        <div id="transfer-zone" style="display: none;">
-            <h3>Transfer Files</h3>
-            <input type="file" id="file-input" />
-            <div id="progress-container" class="progress-wrapper">
-                <progress id="file-progress" value="0" max="100"></progress>
-                <span id="progress-text" class="progress-text">0%</span>
+        <header>
+            <div class="logo-wrap">
+                <div class="logo-icon">
+                    <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+                        <circle cx="13" cy="13" r="3" fill="var(--accent)" />
+                        <circle cx="13" cy="13" r="6.5" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="3 2"
+                            opacity="0.7" />
+                        <circle cx="13" cy="13" r="11" stroke="var(--accent)" stroke-width="1" opacity="0.3"
+                            stroke-dasharray="2 3" />
+                        <line x1="3" y1="13" x2="0" y2="13" stroke="var(--accent)" stroke-width="1.5"
+                            stroke-linecap="round" />
+                        <line x1="23" y1="13" x2="26" y2="13" stroke="var(--accent)" stroke-width="1.5"
+                            stroke-linecap="round" />
+                        <line x1="13" y1="3" x2="13" y2="0" stroke="var(--accent)" stroke-width="1.5"
+                            stroke-linecap="round" />
+                        <line x1="13" y1="23" x2="13" y2="26" stroke="var(--accent)" stroke-width="1.5"
+                            stroke-linecap="round" />
+                    </svg>
+                </div>
+                <h1>LAN<span>CAST</span></h1>
             </div>
-            <button id="disconnect-btn" class="btn btn-primary"
-                style="background: var(--danger); margin-top: 15px;">Disconnect</button>
+            <span id="status" class="status-badge">
+                <span class="status-dot"></span>
+                <span class="status-text">Connecting...</span>
+            </span>
+        </header>
+
+        <div id="network-zone" class="card">
+            <div class="card-header">
+                <span class="card-label">DEVICES ON NETWORK</span>
+                <span class="badge" id="device-count">0 found</span>
+            </div>
+            <div id="users-list" class="users-list"></div>
         </div>
 
-        <h3>Received Files</h3>
-        <ul id="received-files"></ul>
+        <div id="transfer-zone" class="card" style="display: none;">
+            <div class="card-header">
+                <span class="card-label">FILE TRANSFER</span>
+            </div>
+
+            <div class="drop-zone" id="drop-zone">
+                <div class="drop-icon">
+                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                        <circle cx="18" cy="18" r="17" fill="var(--accent-light)" stroke="var(--accent)"
+                            stroke-width="1.5" />
+                        <path d="M18 10v12M13 16l5-6 5 6" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                        <path d="M11 26h14" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"
+                            opacity="0.5" />
+                    </svg>
+                </div>
+                <span class="drop-primary">Drop file here</span>
+                <span class="drop-secondary">or click to browse · any type</span>
+                <input type="file" id="file-input" />
+            </div>
+
+            <div id="progress-container" class="progress-wrapper">
+                <div class="progress-header">
+                    <span id="progress-filename" class="progress-filename">—</span>
+                    <span id="progress-text" class="progress-text">0%</span>
+                </div>
+                <div class="progress-track">
+                    <div id="progress-fill" class="progress-fill"></div>
+                </div>
+                <progress id="file-progress" value="0" max="100" style="display:none"></progress>
+            </div>
+
+            <button id="disconnect-btn" class="btn btn-danger">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+                Disconnect
+            </button>
+        </div>
+
+        <div class="card received-section">
+            <div class="card-header">
+                <span class="card-label">RECEIVED FILES</span>
+                <span class="badge" id="files-count">0 files</span>
+            </div>
+            <ul id="received-files" class="received-files">
+                <li class="empty-state">No files received yet</li>
+            </ul>
+        </div>
     </div>
 
     <div id="request-modal" class="modal-overlay">
         <div class="modal">
-            <p><strong id="requester-id"></strong> wants to connect and share files.</p>
+            <div class="modal-icon">
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                    <circle cx="20" cy="20" r="19" fill="var(--accent-light)" stroke="var(--accent)"
+                        stroke-width="1.5" />
+                    <path d="M12 20h16M20 12l8 8-8 8" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+            </div>
+            <p class="modal-label">INCOMING REQUEST</p>
+            <p class="modal-body"><strong id="requester-id"></strong> wants to connect</p>
             <div class="modal-actions">
+                <button id="reject-btn" class="btn btn-ghost">Decline</button>
                 <button id="accept-btn" class="btn btn-accept">Accept</button>
-                <button id="reject-btn" class="btn btn-reject">Reject</button>
             </div>
         </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="/main.js"></script>
+    <script>
+        const fill = document.getElementById('progress-fill');
+        const nativeProgress = document.getElementById('file-progress');
+        const progressObserver = new MutationObserver(() => {
+            fill.style.width = nativeProgress.value + '%';
+        });
+        progressObserver.observe(nativeProgress, { attributes: true, attributeFilter: ['value'] });
+
+        const deviceCount = document.getElementById('device-count');
+        new MutationObserver(() => {
+            const btns = usersListEl.querySelectorAll('.user-btn');
+            deviceCount.textContent = btns.length + ' found';
+        }).observe(usersListEl, { childList: true });
+
+        const receivedFiles = document.getElementById('received-files');
+        const filesCountEl = document.getElementById('files-count');
+        new MutationObserver(() => {
+            const items = receivedFiles.querySelectorAll('li:not(.empty-state)');
+            if (items.length > 0) {
+                const emptyState = receivedFiles.querySelector('.empty-state');
+                if (emptyState) emptyState.remove();
+                filesCountEl.textContent = items.length + (items.length === 1 ? ' file' : ' files');
+            }
+        }).observe(receivedFiles, { childList: true });
+
+        const dropZone = document.getElementById('drop-zone');
+         fileInput = document.getElementById('file-input');
+
+        dropZone.addEventListener('click', (e) => {
+            if (e.target !== fileInput) fileInput.click();
+        });
+
+        dropZone.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add('drag-over');
+        });
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add('drag-over');
+        });
+        dropZone.addEventListener('dragleave', (e) => {
+            e.stopPropagation();
+            if (!dropZone.contains(e.relatedTarget)) {
+                dropZone.classList.remove('drag-over');
+            }
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            if (files && files.length > 0) {
+                try {
+                    const dt = new DataTransfer();
+                    dt.items.add(files[0]);
+                    fileInput.files = dt.files;
+                } catch (_) { }
+                fileInput.dispatchEvent(new Event('change'));
+            }
+        });
+    </script>
 </body>
 
 </html>

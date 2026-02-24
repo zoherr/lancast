@@ -2,18 +2,20 @@ const socket = io();
 let peerConnection;
 let dataChannel;
 let currentActivePeer = null;
+let lastValidSpeed = 0;
 
 const config = {
     iceServers: [
-        
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
     ]
 };
 
 const statusEl = document.getElementById('status');
-const usersListEl = document.getElementById('users-list');
+let usersListEl = document.getElementById('users-list');
 const networkZone = document.getElementById('network-zone');
 const transferZone = document.getElementById('transfer-zone');
-const fileInput = document.getElementById('file-input');
+let fileInput = document.getElementById('file-input');
 const progressContainer = document.getElementById('progress-container');
 const fileProgress = document.getElementById('file-progress');
 const progressText = document.getElementById('progress-text');
@@ -30,6 +32,60 @@ let receivedSize = 0;
 let expectedFileSize = 0;
 let expectedFileName = '';
 let pendingRequester = null;
+
+// Speed tracking
+let transferStartTime = null;
+let lastSpeedCheck = null;
+let lastSpeedBytes = 0;
+let speedInterval = null;
+
+function formatSpeed(bytesPerSecond) {
+    if (bytesPerSecond >= 1024 * 1024) {
+        return `${(bytesPerSecond / (1024 * 1024)).toFixed(1)} MB/s`;
+    } else if (bytesPerSecond >= 1024) {
+        return `${(bytesPerSecond / 1024).toFixed(1)} KB/s`;
+    }
+    return `${Math.round(bytesPerSecond)} B/s`;
+}
+
+function formatETA(remainingBytes, bytesPerSecond) {
+    if (bytesPerSecond <= 0) return '';
+    const seconds = Math.round(remainingBytes / bytesPerSecond);
+    if (seconds >= 60) return ` · ${Math.floor(seconds / 60)}m ${seconds % 60}s left`;
+    return ` · ${seconds}s left`;
+}
+
+function startSpeedTracking(currentBytes) {
+    transferStartTime = Date.now();
+    lastSpeedCheck = Date.now();
+    lastSpeedBytes = currentBytes;
+    clearInterval(speedInterval);
+}
+
+function stopSpeedTracking() {
+    clearInterval(speedInterval);
+    speedInterval = null;
+    transferStartTime = null;
+    lastSpeedCheck = null;
+    lastSpeedBytes = 0;
+}
+
+function getInstantSpeed(currentBytes) {
+    const now = Date.now();
+    const elapsed = (now - lastSpeedCheck) / 1000;
+
+    if (elapsed < 0.2) return lastValidSpeed; // use last speed
+
+    const speed = (currentBytes - lastSpeedBytes) / elapsed;
+    lastSpeedCheck = now;
+    lastSpeedBytes = currentBytes;
+
+    if (speed > 0) {
+        lastValidSpeed = speed;
+    }
+
+    return lastValidSpeed;
+}
 
 function updateStatus(message, isError = false) {
     statusEl.textContent = message;
@@ -109,11 +165,12 @@ function setupPeerConnection(targetId) {
 
     peerConnection.onconnectionstatechange = () => {
         if (peerConnection.connectionState === 'connected') {
+            statusEl.classList.add('connected');
             updateStatus(`🟢 Connected to Device_${targetId.substring(0, 5)}`);
             networkZone.style.display = 'none';
             transferZone.style.display = 'block';
         } else if (peerConnection.connectionState === 'disconnected' || peerConnection.connectionState === 'failed') {
-            handleDisconnection(false); 
+            handleDisconnection(false);
         }
     };
 
@@ -132,7 +189,8 @@ function handleDisconnection(notifyPeer = true) {
         peerConnection.close();
         peerConnection = null;
     }
-
+    statusEl.classList.remove('connected');
+    stopSpeedTracking();
     currentActivePeer = null;
     dataChannel = null;
     networkZone.style.display = 'block';
@@ -153,29 +211,38 @@ function setupDataChannel() {
             receiveBuffer = [];
             receivedSize = 0;
             progressContainer.style.display = 'block';
+            startSpeedTracking(0);
         } else {
             receiveBuffer.push(event.data);
             receivedSize += event.data.byteLength;
 
             const percentage = Math.round((receivedSize / expectedFileSize) * 100);
             fileProgress.value = percentage;
-            progressText.textContent = `Receiving: ${percentage}%`;
+
+            const speed = getInstantSpeed(receivedSize);
+            const remaining = expectedFileSize - receivedSize;
+            const speedStr = ` · ${formatSpeed(speed)}${formatETA(remaining, speed)}`;
+            progressText.textContent = `Receiving: ${percentage}%${speedStr}`;
 
             if (receivedSize === expectedFileSize) {
+                const totalTime = ((Date.now() - transferStartTime) / 1000).toFixed(1);
+                const avgSpeed = formatSpeed(expectedFileSize / (totalTime || 1));
+                stopSpeedTracking();
+
                 const blob = new Blob(receiveBuffer);
                 const downloadUrl = URL.createObjectURL(blob);
                 const li = document.createElement('li');
                 const a = document.createElement('a');
                 a.href = downloadUrl;
                 a.download = expectedFileName;
-                a.textContent = `💾 ${expectedFileName}`;
+                a.textContent = `💾 ${expectedFileName} (avg ${avgSpeed}, ${totalTime}s)`;
                 li.appendChild(a);
                 receivedFilesList.appendChild(li);
-
-                progressText.textContent = 'Complete!';
-                setTimeout(() => progressContainer.style.display = 'none', 2000);
+                progressText.textContent = `✅ Complete! · avg ${avgSpeed}`;
+                progressContainer.style.display = 'none';
             }
         }
+        document.getElementById('progress-filename').textContent = expectedFileName;
     };
 }
 
@@ -189,6 +256,10 @@ async function initiateWebRTCConnection(targetId) {
 
     socket.emit('offer', { to: targetId, offer: offer });
 }
+
+socket.on('peer-disconnected', () => {
+    handleDisconnection(false);
+});
 
 socket.on('offer', async (data) => {
     setupPeerConnection(data.sender);
@@ -220,6 +291,8 @@ fileInput.addEventListener('change', () => {
     let offset = 0;
 
     progressContainer.style.display = 'block';
+    document.getElementById('progress-filename').textContent = file.name;
+    startSpeedTracking(0);
 
     const readSlice = (o) => {
         const slice = file.slice(offset, o + chunkSize);
@@ -229,9 +302,14 @@ fileInput.addEventListener('change', () => {
             dataChannel.send(e.target.result);
             offset += chunkSize;
 
-            const percentage = Math.round((offset / file.size) * 100);
-            fileProgress.value = Math.min(percentage, 100);
-            progressText.textContent = `Sending: ${Math.min(percentage, 100)}%`;
+            const clampedOffset = Math.min(offset, file.size);
+            const percentage = Math.round((clampedOffset / file.size) * 100);
+            fileProgress.value = percentage;
+
+            const speed = getInstantSpeed(clampedOffset);
+            const remaining = file.size - clampedOffset;
+            const speedStr = speed !== null ? ` · ${formatSpeed(speed)}${formatETA(remaining, speed)}` : '';
+            progressText.textContent = `Sending: ${percentage}%${speedStr}`;
 
             if (offset < file.size) {
                 if (dataChannel.bufferedAmount > 65535) {
@@ -243,11 +321,13 @@ fileInput.addEventListener('change', () => {
                     readSlice(offset);
                 }
             } else {
-                progressText.textContent = 'Sent!';
-                setTimeout(() => {
-                    progressContainer.style.display = 'none';
-                    fileInput.value = '';
-                }, 2000);
+                const totalTime = ((Date.now() - transferStartTime) / 1000).toFixed(1);
+                const avgSpeed = formatSpeed(file.size / (totalTime || 1));
+                stopSpeedTracking();
+
+                progressText.textContent = `✅ Sent! · avg ${avgSpeed} in ${totalTime}s`;
+                progressContainer.style.display = 'none';
+                fileInput.value = '';
             }
         };
         reader.readAsArrayBuffer(slice);
@@ -255,17 +335,3 @@ fileInput.addEventListener('change', () => {
 
     readSlice(0);
 });
-
-function handleDisconnection() {
-    if (peerConnection) {
-        peerConnection.close();
-        peerConnection = null;
-    }
-    currentActivePeer = null;
-    dataChannel = null;
-    networkZone.style.display = 'block';
-    transferZone.style.display = 'none';
-    updateStatus(`My ID: ${socket.id.substring(0, 5)}`);
-}
-
-disconnectBtn.onclick = handleDisconnection;

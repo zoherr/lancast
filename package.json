@@ -1,6 +1,6 @@
 {
   "name": "lancast",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "LanCast is a LAN-based peer-to-peer file sharing CLI tool. Instantly share files between devices on the same WiFi network with zero configuration.",
   "type": "module",
   "main": "server.js",
